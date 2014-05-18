@@ -1,0 +1,201 @@
+%{
+#include <cstdio>
+#include <iostream>
+using namespace std;
+
+#include "cpp2php.tab.h"  // to get the token types that we return
+
+// stuff from flex that bison needs to know about:
+extern "C" int yylex();
+extern "C" int yyparse();
+extern "C" FILE *yyin;
+extern int line_num;
+ 
+void yyerror(const char *s);
+%}
+
+// Bison fundamentally works by asking flex to get the next token, which it
+// returns as an object of type "yystype".  But tokens could be of any
+// arbitrary data type!  So we deal with that in Bison by defining a C union
+// holding each of the types of tokens that Flex could return, and have Bison
+// use that union instead of "int" for the definition of "yystype":
+%union {
+	int ival;
+	float fval;
+	char *sval;
+}
+
+// define the constant-string tokens:
+%token INCLUDE_TOK DEFINE_TOK ABSTRACT_TOK AUTO_TOK BOOL_TOK BREAK_TOK CASE_TOK CATCH_TOK CHAR_TOK CLASS_TOK CONST_TOK CONTINUE_TOK DEFAULT_TOK DELETE_TOK DIV_ASSIGN_TOK DO_TOK DOUBLE_TOK ELSE_TOK ENUM_TOK EXTERN_TOK FALSE_TOK FINALLY_TOK FLOAT_TOK EACH_TOK FOR_TOK IN_TOK FRIEND_TOK IF_TOK INLINE_TOK INT_TOK INTERFACE_TOK LITERAL_TOK LONG_TOK MUTABLE_TOK NAMESPACE_TOK NEW_TOK PRIVATE_TOK PROTECTED_TOK PUBLIC_TOK REGISTER_TOK RETURN_TOK SHORT_TOK SIGNED_TOK SIZEOF_TOK STATIC_TOK STRUCT_TOK SWITCH_TOK TEMPLATE_TOK THIS_TOK THREAD_TOK THROW_TOK TRUE_TOK TRY_TOK TYPEDEF_TOK UNION_TOK UNSIGNED_TOK USING_TOK VIRTUAL_TOK VOID_TOK VOLATILE_TOK WHILE_TOK
+
+%token ENDL NOT_EQUAL_TOK MOD_ASSIGN_TOK AND_TOK BIN_AND_ASSIGN_TOK MULTIPLY_ASSIGN_TOK INC_TOK ADD_ASSIGN_TOK DEC_TOK SUB_ASSIGN_TOK DIV_ASSGN_TOK LEFT_SHIFT_TOK LEFT_SHIFT_ASSIGN_TOK LESS_OR_EQUAL_TOK EQUAL_TOK GREATER_OR_EQUAL_TOK RIGHT_SHIFT_TOK RIGHT_SHIFT_ASSIGN_TOK EXCLUSIVE_OR_ASSIGN_TOK BITWISE_INCLUSIVE_OR_ASSIGN_TOK OR_TOK SCOPE_TOK
+
+// define the "terminal symbol" token types I'm going to use (in CAPS
+// by convention), and associate each with a field of the union:
+%token <ival> INT_NUM_TOK
+%token <fval> FLOAT_NUM_TOK
+%token <sval> STRING_TOK
+%token <sval> IDENT_TOK
+%token <sval> OPERATOR_FUN_TOK
+
+%%
+
+parse: cpp { cout << "Parsing was complited successfully" << endl; };
+
+cpp: including defining definitions | including definitions | defining definitions | definitions; 
+
+including: including1 { cout << "Including" << endl; };
+
+including1: including INCLUDE_TOK '<' include_arg '>' | INCLUDE_TOK '<' include_arg '>' | including INCLUDE_TOK '"' include_arg '"' | INCLUDE_TOK '"' include_arg '"';
+
+include_arg: include_arg '.' IDENT_TOK | IDENT_TOK;
+
+defining: defining1 { cout << "Defining" << endl; };
+
+defining1: defining DEFINE_TOK IDENT_TOK value | DEFINE_TOK IDENT_TOK value; 
+
+definitions: definitions1 { cout << "Definitions" << endl; };
+
+definitions1: var_declaration | var_definition | template | class | struct | union | function_definition | function_declaration | definitions var_declaration | definitions var_definition | definitions template | definitions class | definitions struct | definitions union | definitions function_declaration | definitions function_definition;
+
+template: template1 { cout << "template" << endl; };
+
+template1: TEMPLATE_TOK '<' template_arguments '>' CLASS_TOK '{' class_body '}' | TEMPLATE_TOK '<' template_arguments '>' CLASS_TOK ':' extensions '{' class_body '}';
+
+class: class1 { cout << "Class" << endl; };
+
+class1: CLASS_TOK IDENT_TOK '{' class_body '}' | CLASS_TOK IDENT_TOK ':' extensions '{' class_body '}';
+
+struct: struct1 { cout << "Struct" << endl; };
+
+struct1: STRUCT_TOK '{' struct_body '}' | STRUCT_TOK ':' extensions '{' struct_body '}';
+
+union: union1 { cout << "Union" << endl; };
+
+union1: UNION_TOK '{' union_body '}';
+
+union_body: union_body var_declaration | var_declaration;
+
+extensions: extensions ',' access_specifier IDENT_TOK |  access_specifier IDENT_TOK;
+
+access_specifier: PUBLIC_TOK | PROTECTED_TOK | PRIVATE_TOK;
+
+class_body: | class_body access_specifier ':'| var_declaration | var_definition | function_declaration | function_definition | class_body var_declaration | class_body var_definition | class_body function_declaration | class_body function_definition;
+
+struct_body: | struct_body var_declaration | struct_body var_definition | struct_body function_declaration | struct_body function_definition | var_declaration | var_definition | function_declaration | function_definition; 
+
+var_declaration: var_declaration1 { cout << "var_declaration" << endl; };
+
+var_declaration1: type IDENT_TOK ';'; 
+
+var_definition: var_definition1 { cout << "var_definition" << endl; };
+
+var_definition1: type IDENT_TOK '=' ident ';' | type IDENT_TOK '=' function_call ';' | type IDENT_TOK '=' operation ';' | type IDENT_TOK '=' value ';' | type IDENT_TOK '=' NEW_TOK function_call ';'| type IDENT_TOK '=' NEW_TOK type ';';
+
+function_declaration: function_declaration1 { cout << "Function declaration" << endl; };
+
+function_declaration1: type IDENT_TOK '(' arguments ')' ';';
+
+function_definition: function_definition1 { cout << "Function definition" << endl; };
+
+function_definition1: type IDENT_TOK '(' arguments ')' '{' function_body '}';
+
+function_body: function_body var_declaration | function_body  var_definition | function_body  function_call ';'| function_body  assignment | function_body  operation | function_body  condition_if | function_body  condition_switch | function_body  loop_for | function_body loop_while | function_body  loop_do | function_body  BREAK_TOK ';' | function_body returning | var_declaration | var_definition | function_call | assignment | operation | condition_if | condition_switch | loop_for | loop_while | loop_do | BREAK_TOK ';' | returning | function_body ';';
+
+one_line_function_body: var_declaration | var_definition | function_call | assignment | operation | condition_if | condition_switch | loop_for | loop_while | loop_do | BREAK_TOK ';' | returning;
+
+returning: returning1 { cout << "Returning" << endl; };
+
+returning1: RETURN_TOK ';' | RETURN_TOK value ';' | RETURN_TOK ident ';' | RETURN_TOK operation ';' | RETURN_TOK function_call ';'| RETURN_TOK NEW_TOK function_call ';'| RETURN_TOK NEW_TOK type ';';
+
+function_call: function_call1 { cout << "function_call" << endl; };
+
+function_call1: type IDENT_TOK '(' call_arguments ')' | type IDENT_TOK '.' IDENT_TOK '(' call_arguments ')';
+
+assignment: assignment1 { cout << "Assignment" << endl; };
+
+assignment1: ident assign_operator ident ';' | ident assign_operator function_call ';' | ident assign_operator operation ';' | ident assign_operator value ';' | ident assign_operator NEW_TOK function_call ';' | ident assign_operator NEW_TOK type ';';
+
+operation: operation1 { cout << "Operation" << endl; };
+
+operation1: operation operator ident | operation operator function_call | operation operator value | operation operator NEW_TOK function_call | NEW_TOK type | ident | function_call | value | NEW_TOK function_call | ident INC_TOK | INC_TOK ident | ident DEC_TOK | DEC_TOK ident | operation '(' operation ')' | '(' operation ')';
+
+condition_if: condition_if1 { cout << "If" << endl; };
+
+condition_if1: IF_TOK '(' comparation ')' '{' function_body '}' | IF_TOK '(' comparation ')' one_line_function_body;
+
+condition_switch: condition_switch1 { cout << "Switch" << endl; };
+
+condition_switch1: SWITCH_TOK '(' IDENT_TOK ')' '{' switch_body '}';
+
+switch_body: cases_section default_section | cases_section;
+
+cases_section: cases_section CASE_TOK ':' function_body | CASE_TOK ':' function_body;
+
+default_section: DEFAULT_TOK ':' function_body;
+
+loop_for: loop_for1 { cout << "For" << endl; };
+
+loop_for1: FOR_TOK '(' initial_args ';' comparation ';' action_args ')' '{' function_body '}' | FOR_TOK '(' initial_args ';' comparation ';' action_args ')' one_line_function_body;
+
+loop_do: DO_TOK '{' function_body '}' WHILE_TOK '(' comparation ')' ';' | DO_TOK one_line_function_body WHILE_TOK '(' comparation ')' ';';
+
+initial_args: initial_args ',' type IDENT_TOK '=' value | initial_args ',' ident '=' value | type IDENT_TOK '=' value | ident '=' value;
+
+action_args: action_args ',' operation | operation;
+
+call_arguments: | call_arguments ',' ident | ident;
+
+loop_while: WHILE_TOK '(' comparation ')' '{' function_body '}' | WHILE_TOK '(' comparation ')' one_line_function_body;
+
+arguments: | arguments ',' type IDENT_TOK | type IDENT_TOK;
+
+template_arguments: | template_arguments ',' type IDENT_TOK | type IDENT_TOK | template_arguments ',' IDENT_TOK IDENT_TOK | IDENT_TOK IDENT_TOK;
+
+value: INT_NUM_TOK | FLOAT_NUM_TOK | STRING_TOK | TRUE_TOK | FALSE_TOK;
+
+operator: operation_operator | comparing_operator | logical_operator;
+
+operation_operator: '+' | '*' | '-' | '/' | '%' | LEFT_SHIFT_TOK | RIGHT_SHIFT_TOK | '|' | '&';
+
+comparing_operator: '<' | '>' | GREATER_OR_EQUAL_TOK | LESS_OR_EQUAL_TOK | EQUAL_TOK | NOT_EQUAL_TOK;
+
+assign_operator: '=' | ADD_ASSIGN_TOK | MULTIPLY_ASSIGN_TOK | SUB_ASSIGN_TOK | DIV_ASSIGN_TOK | MOD_ASSIGN_TOK | BIN_AND_ASSIGN_TOK | LEFT_SHIFT_ASSIGN_TOK | RIGHT_SHIFT_ASSIGN_TOK | EXCLUSIVE_OR_ASSIGN_TOK | BITWISE_INCLUSIVE_OR_ASSIGN_TOK;
+
+logical_operator: AND_TOK | OR_TOK | '!';
+
+type: type_spec | type_spec '*' | type_spec '['']' | type_spec '[' INT_TOK ']';
+
+type_spec: typevar | VOLATILE_TOK typevar | REGISTER_TOK typevar | STATIC_TOK typevar | EXTERN_TOK typevar | AUTO_TOK typevar | CONST_TOK typevar;
+
+ident: IDENT_TOK | IDENT_TOK '*' | IDENT_TOK '[' INT_NUM_TOK ']' | '&' IDENT_TOK | IDENT_TOK '.' ident | IDENT_TOK '*' '-' '>' ident | IDENT_TOK '[' INT_NUM_TOK ']' '.' ident | IDENT_TOK SCOPE_TOK ident;
+
+typevar: IDENT_TOK | CHAR_TOK | SHORT_TOK INT_TOK | INT_TOK | LONG_TOK INT_TOK | DOUBLE_TOK | FLOAT_TOK | LONG_TOK | BOOL_TOK | SHORT_TOK | VOID_TOK | SIGNED_TOK CHAR_TOK | SIGNED_TOK INT_TOK | UNSIGNED_TOK INT_TOK | SIGNED_TOK SHORT_TOK INT_TOK | SIGNED_TOK LONG_TOK INT_TOK | SIGNED_TOK DOUBLE_TOK | SIGNED_TOK FLOAT_TOK | SIGNED_TOK LONG_TOK | SIGNED_TOK SHORT_TOK | UNSIGNED_TOK CHAR_TOK | UNSIGNED_TOK SHORT_TOK INT_TOK | UNSIGNED_TOK LONG_TOK INT_TOK | UNSIGNED_TOK DOUBLE_TOK | UNSIGNED_TOK FLOAT_TOK | UNSIGNED_TOK LONG_TOK | UNSIGNED_TOK SHORT_TOK | CLASS_TOK IDENT_TOK | STRUCT_TOK IDENT_TOK | UNION_TOK IDENT_TOK ; 
+
+comparation: comparation comparing_operator ident | ident;
+%%
+
+main() {
+	// open a file handle to a particular file:
+	FILE *myfile = fopen("in.cpp", "r");
+	// make sure it's valid:
+	if (!myfile) {
+		cout << "I can't open a.snazzle.file!" << endl;
+		return -1;
+	}
+	// set lex to read from it instead of defaulting to STDIN:
+	yyin = myfile;
+
+	// parse through the input until there is no more:
+	
+	do {
+		yyparse();
+	} while (!feof(yyin));
+	
+}
+
+void yyerror(const char *s) {
+	cout << "EEK, parse error on line " << line_num << "!  Message: " << s << endl;
+	// might as well halt now:
+	//exit(-1);
+}
