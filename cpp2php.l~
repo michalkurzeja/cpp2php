@@ -85,7 +85,6 @@ while 		{ return WHILE_TOK; }
 <COMMENTS>.       ;   // ignore every other character while we're in this state
 \n             { ++line_num; }
 ,		{ return ','; }
-\.		{ return '.'; }
 !		{ return '!'; }
 !=		{ return NOT_EQUAL_TOK; }
 \%		{ return '%'; }

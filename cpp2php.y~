@@ -120,8 +120,6 @@ operation: operation1 { cout << "Operation" << endl; };
 
 operation1: operation operator ident | operation operator function_call | operation operator value | operation operator NEW_TOK function_call | NEW_TOK type | ident | function_call | value | NEW_TOK function_call | ident INC_TOK | INC_TOK ident | ident DEC_TOK | DEC_TOK ident | operation operator '(' operation ')' | '(' operation ')' | '!' operation | operation operator '!' operation;
 
-comparation: operation;
-
 condition_if: condition_if1 { cout << "If" << endl; };
 
 condition_if1: IF_TOK '(' comparation ')' '{' function_body '}' | IF_TOK '(' comparation ')' one_line_function_body;
