@@ -128,8 +128,11 @@ var_definition2:
     | function_call
     | operation
     | value
-    | NEW_TOK function_call
-    | NEW_TOK type
+    | NEW_TOK { write("new "); } var_definition3;
+
+var_definition3:
+    function_call
+    | type;
 
 // not present in php
 function_declaration: function_declaration1 { cout << "Function declaration" << endl; };
@@ -168,7 +171,8 @@ function_body:
     | loop_do
     | BREAK_TOK ';' { write("break;\n"); }
     | returning
-    | function_body ';' { write(";\n"); };
+    | function_body ';' { write(";\n"); }
+    | ';' { write(";\n"); };
 
 one_line_function_body:
     var_declaration
@@ -185,16 +189,19 @@ one_line_function_body:
     | returning;
 
 returning:
-    { write("return "); } returning1 {write(";\n"); } { cout << "Returning" << endl; };
+    RETURN_TOK { write("return "); } returning1 ';' {write(";\n"); };
+    | RETURN_TOK ';' { write("return;\n"); }
 
 returning1:
-    RETURN_TOK ';'
-    | RETURN_TOK  value ';'
-    | RETURN_TOK ident ';'
-    | RETURN_TOK operation ';'
-    | RETURN_TOK function_call ';'
-    | RETURN_TOK NEW_TOK function_call ';'
-    | RETURN_TOK NEW_TOK type ';';
+    ident
+    | function_call
+    | operation
+    | value
+    | NEW_TOK { write("new "); } returning2;
+
+returning2:
+    function_call
+    | type
 
 function_call:
     function_call1 { cout << "function_call" << endl; };
@@ -214,8 +221,11 @@ assignment2:
     | function_call
     | operation
     | value
-    | NEW_TOK function_call
-    | NEW_TOK type;
+    | NEW_TOK { write("new "); } assignment3;
+
+assignment3:
+    function_call
+    | type;
 
 operation:
     operation1 { cout << "Operation" << endl; };
@@ -225,11 +235,10 @@ operation1:
     | operation operator function_call
     | operation operator value
     | operation operator NEW_TOK { write("new "); } function_call
-    | NEW_TOK { write("new "); } type
+    | NEW_TOK { write("new "); } operation2
     | ident
     | function_call
     | value
-    | NEW_TOK function_call
     | ident INC_TOK { write("++"); }
     | INC_TOK { write("++"); } ident
     | ident DEC_TOK { write("--"); }
@@ -239,21 +248,51 @@ operation1:
     | '!' { write("!"); } operation
     | operation operator '!' { write("!"); } operation;
 
-comparation: operation;
+operation2:
+    type
+    | function_call;
 
-condition_if: condition_if1 { cout << "If" << endl; };
+comparation:
+    operation;
 
-condition_if1: IF_TOK '(' comparation ')' '{' function_body '}' | IF_TOK '(' comparation ')' one_line_function_body;
+condition_if:
+    condition_if1 { cout << "If" << endl; };
 
-condition_switch: condition_switch1 { cout << "Switch" << endl; };
+condition_if1:
+    IF_TOK '(' { write("if ("); } comparation ')' { write(")"); } condition_if2 condition_else { write("\n"); };
 
-condition_switch1: SWITCH_TOK '(' IDENT_TOK ')' '{' switch_body '}';
+condition_if2:
+    '{' { write(" {\n"); } function_body '}' { write("}"); }
+    | { write("\n"); } one_line_function_body;
 
-switch_body: cases_section default_section | cases_section;
+condition_else:
+    | ELSE_TOK { write(" else"); } condition_else2 { write("\n"); };
 
-cases_section: cases_section CASE_TOK ':' function_body | CASE_TOK ':' function_body;
+condition_else2:
+    '{' { write(" {\n"); } function_body '}' { write("}"); }
+    | { write("\n"); } one_line_function_body;
 
-default_section: DEFAULT_TOK ':' function_body;
+condition_switch:
+    condition_switch1 { cout << "Switch" << endl; };
+
+condition_switch1:
+    SWITCH_TOK '(' IDENT_TOK ')' '{' { write("switch (%s) {\n", $3); } switch_body '}' { write("}\n"); };
+
+switch_body:
+    cases_section default_section;
+
+cases_section:
+    cases_section CASE_TOK { write("case "); } switch_value ':' { write(":\n"); } case_body
+    | CASE_TOK { write("case "); } switch_value ':' { write(":\n"); } case_body;
+
+default_section:
+    | DEFAULT_TOK ':' { write("default:\n"); } case_body;
+
+case_body:
+    | function_body
+
+switch_value:
+    INT_NUM_TOK { write("%d", $1); }
 
 loop_for:
     loop_for1 { cout << "For" << endl; };
