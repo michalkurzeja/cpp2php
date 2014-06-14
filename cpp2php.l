@@ -71,7 +71,7 @@ volatile	{ return VOLATILE_TOK; }
 while 		{ return WHILE_TOK; }
 [0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT_NUM_TOK; }
 [0-9]+         { yylval.ival = atoi(yytext); return INT_NUM_TOK; }
-[a-zA-Z_][a-zA-Z0-9]*   {
+[a-zA-Z_][a-zA-Z0-9]*  {
 	yylval.sval = strdup(yytext);
 	return IDENT_TOK; }
 \".*\"	{ yylval.sval = strdup(yytext);
