@@ -1,7 +1,17 @@
 #include <stdio.h>
-#include <lol.php>
+#include <file.php>
+
+class A
+{
+    private int x;
+
+    public int getX() {
+        return x;
+    }
+}
 
 int main() {
+    5=5
     // The counter variable can be declared in the init-expression.
     for (int i = 0; i < 2; i++ ){
        printf("%d",i);
@@ -15,14 +25,14 @@ int main() {
     /* Output: 01
     These for loops are the equivalent of a while loop.*/
     i = 0;
-    newguy = new Date();
+    newguy = new A();
     while (i < 2){
         printf("%d",i);
 	    break;
     }
 
     if(true) {
-        return new Awesome();
+        return new A();
     }
 
     if(i) {
@@ -35,7 +45,7 @@ int main() {
         return false;
     } else if (2) {
         if(true)
-            return -5;
+            return 5;
     }
 
     do {
@@ -44,15 +54,15 @@ int main() {
 
     switch(i) {
         case 1:
-            a = -5;
+            a = 5;
             break;
         case 2:
             return 3;
         case 4:
         case 5:
-            return new Date();
+            return new A();
         default:
-            return -1;
+            return 1;
     }
 
     return 1;

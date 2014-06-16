@@ -85,7 +85,9 @@ template1: TEMPLATE_TOK '<' template_arguments '>' CLASS_TOK '{' class_body '}' 
 
 class: class1 { cout << "Class" << endl; };
 
-class1: CLASS_TOK IDENT_TOK '{' class_body '}' | CLASS_TOK IDENT_TOK ':' extensions '{' class_body '}';
+class1:
+	CLASS_TOK IDENT_TOK '{' {write("class %s {\n",$2);} class_body '}' {write("}\n");}
+	| CLASS_TOK IDENT_TOK ':' extensions '{' class_body '}';
 
 // not present in php
 struct: struct1 { cout << "Struct" << endl; };
@@ -104,9 +106,21 @@ union_body: union_body var_declaration | var_declaration;
 
 extensions: extensions ',' access_specifier IDENT_TOK |  access_specifier IDENT_TOK;
 
-access_specifier: PUBLIC_TOK | PROTECTED_TOK | PRIVATE_TOK;
+access_specifier:
+	PUBLIC_TOK { write("public "); }
+	| PROTECTED_TOK { write("protected "); }
+	| PRIVATE_TOK { write("private "); };
 
-class_body: | class_body access_specifier ':'| var_declaration | var_definition | function_declaration | function_definition | class_body var_declaration | class_body var_definition | class_body function_declaration | class_body function_definition;
+class_body:
+	| class_body access_specifier ':'
+	| access_specifier var_declaration
+	| access_specifier var_definition
+	| access_specifier function_declaration
+	| access_specifier function_definition
+	| class_body access_specifier var_declaration
+	| class_body access_specifier var_definition
+	| class_body access_specifier function_declaration
+	| class_body access_specifier function_definition;
 
 // not present in php
 struct_body: | struct_body var_declaration | struct_body var_definition | struct_body function_declaration | struct_body function_definition | var_declaration | var_definition | function_declaration | function_definition;
